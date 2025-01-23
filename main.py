@@ -19,6 +19,10 @@ def parse_args() -> ProcessingConfig:
 	parser.add_argument('-o', '--output',
 					   required=True,
 					   help='Path to output file')
+	parser.add_argument('-t', '--tcol',
+                     	required=True)
+	parser.add_argument('-d', '--idcol',
+                     	required=True)
 	parser.add_argument('-p', '--parallel',
 					   action='store_true',
 					   help='Enable parallel processing')
@@ -35,6 +39,8 @@ def parse_args() -> ProcessingConfig:
 	return ProcessingConfig(
 		input_file=args.input,
 		output_file=args.output,
+		text_column=args.tcol,
+		id_column=args.idcol,
 		umls_path=args.umls,
 		batch_size=args.batch_size,
 		num_workers=args.workers,
