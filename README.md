@@ -32,7 +32,7 @@ This tool requires you to have a valid UMLS installation on disk. To set up UMLS
 
 1. Clone this repository:
 ```bash
-git clone https://github.com/yourusername/UMLSpipeline.git
+git clone https://github.com/BMIN-5100-Spring-2025/Sy_UMLSpipeline.git
 ```
 
 2. Install the required packages:
@@ -123,11 +123,3 @@ with open(config.output_path, 'w') as outfile:
 - Adjust `batch_size` based on available memory
 - Number of workers defaults to CPU count but can be adjusted using `--workers`
 - The tool automatically chunks data for memory-efficient processing
-
-## Running on i2c2 cluster
-
-Note that QuickUMLS requires `libstdc++` so you may need to load a gcc module. You may want to check `module avail` to load a compatible version, like below:
-
-```
-module load gcc/12.2.0
-```
