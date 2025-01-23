@@ -1,0 +1,23 @@
+decorator==5.1.1
+en-core-web-sm @ https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.1.0/en_core_web_sm-3.1.0-py3-none-any.whl
+medspacy==0.2.0.0
+medspacy-quickumls==2.4.1
+nltk==3.7
+numpy==1.22.3
+pandas==1.4.2
+pickleshare==0.7.5
+pydantic==1.8.2
+PyFastNER==1.0.8b10
+PyRuSH==1.0.3.5
+pysbd==0.3.4
+quickumls==1.4.0.post1
+regex==2022.3.2
+spacy==3.1.5
+spacy-legacy==3.0.9
+srsly==2.4.2
+thinc==8.0.13
+tqdm==4.63.0
+unqlite==0.9.3
+wasabi==0.9.0
+wcwidth==0.2.5
+zipp==3.7.0
