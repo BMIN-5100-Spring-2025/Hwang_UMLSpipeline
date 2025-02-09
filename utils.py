@@ -16,6 +16,8 @@ class ProcessingConfig:
 	id_column: str = "note_id"
 	text_column: str = "AGG_TEXT"
 	parallelize: bool = False
+	embeddings_path: Optional[str] = None
+	visualization_path: Optional[str] = None
 	
 	@property
 	def input_path(self) -> Path:
