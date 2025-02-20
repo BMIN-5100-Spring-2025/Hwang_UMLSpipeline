@@ -83,10 +83,10 @@ class NLPProcessor:
 						'semtype': list(candidate['semtypes'])
 					}
 					result['umls'].append(entity_info)
-					print('CUI: {}'.format(candidate['cui']))
-					print('Similarity: {}'.format(candidate['similarity']))
-					print('Semtypes: {}'.format(candidate['semtypes']))
-					print('********************')
+					# print('CUI: {}'.format(candidate['cui']))
+					# print('Similarity: {}'.format(candidate['similarity']))
+					# print('Semtypes: {}'.format(candidate['semtypes']))
+					# print('********************')
 					
 			return result
 		except Exception as e:
