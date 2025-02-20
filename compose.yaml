@@ -15,11 +15,11 @@ services:
       - 8800:8800
     volumes:
     - ./data:/app/data
-    - ./2020AB-full/2020AB-quickumls-install:/app/umls
+    - ./2020AB-full:/app/umls
     environment:
       - QUICKUMLS_PATH=/app/umls
       - PYTHONPATH=/app
-    command: python3 main.py -i /app/data/input/mtsamples-demo.csv -o /app/data/output/mtsamples-output.jsonl -u /app/umls -t description -d id --batch-size 1
+    command: python3 main.py -i /app/data/input/mtsamples-demo.csv -o /app/data/output/mtsamples-output.jsonl -u /app/umls/2020AB-quickumls-install -t description -d note_id --batch-size 1
 # The commented out section below is an example of how to define a PostgreSQL
 # database that your application can use. `depends_on` tells Docker Compose to
 # start the database before your application. The `db-data` volume persists the
