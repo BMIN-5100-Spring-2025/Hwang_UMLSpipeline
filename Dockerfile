@@ -16,8 +16,6 @@ ENV PYTHONDONTWRITEBYTECODE=1
 # the application crashes without emitting any logs due to buffering.
 ENV PYTHONUNBUFFERED=1
 
-WORKDIR /app
-
 # Create a non-privileged user that the app will run under.
 # See https://docs.docker.com/go/dockerfile-user-best-practices/
 ARG UID=10001
@@ -63,7 +61,8 @@ ENV NUMBA_CACHE_DIR=/tmp/numba_cache
 RUN mkdir -p /tmp/numba_cache && chmod 777 /tmp/numba_cache
 
 # Copy the source code into the container.
-COPY . .
+COPY *.py
+COPY requirements.txt
 
 # Ensure proper permissions for output directory
 # Set working directory
