@@ -44,6 +44,8 @@ RUN python3 -m nltk.downloader -d /usr/local/share/nltk_data stopwords
 # Give permissions
 RUN chmod -R 755 /usr/local/share/nltk_data
 
+# Cython is a dependency of one of the medspacy dependency libraries
+# Cython needs to be installed before other dependencies
 RUN --mount=type=cache,target=/root/.cache/pip \
     python -m pip install Cython==0.29.32
 # Download dependencies as a separate step to take advantage of Docker's caching.
@@ -77,11 +79,3 @@ USER appuser
 # Expose the port that the application listens on.
 EXPOSE 8800
 
-# # Run the application.
-# CMD python3 main.py \
-#     -i data/input/mtsamples-demo.csv \
-#     -o data/output/mtsamples-output.jsonl \
-#     -u ../2020AB-full/2020AB-quickumls-install \
-#     -t description \
-#     -d id \
-#     --batch-size 1
