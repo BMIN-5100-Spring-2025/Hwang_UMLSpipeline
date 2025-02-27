@@ -63,7 +63,8 @@ ENV NUMBA_CACHE_DIR=/tmp/numba_cache
 RUN mkdir -p /tmp/numba_cache && chmod 777 /tmp/numba_cache
 
 # Copy the source code into the container.
-COPY . .
+COPY *.py .
+COPY requirements.txt .
 
 # Ensure proper permissions for output directory
 # Set working directory
