@@ -64,7 +64,6 @@ RUN mkdir -p /tmp/numba_cache && chmod 777 /tmp/numba_cache
 
 # Copy the source code into the container.
 COPY . .
-COPY requirements.txt
 
 # Ensure proper permissions for output directory
 # Set working directory
