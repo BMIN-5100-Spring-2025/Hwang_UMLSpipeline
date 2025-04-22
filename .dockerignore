@@ -32,5 +32,6 @@
 **/values.dev.yaml
 data/input/
 2020AB-full/
+.terraform/
 LICENSE
 README.md
