@@ -40,6 +40,7 @@ resource "aws_s3_bucket_public_access_block" "project_data_public_access_block" 
 
 resource "aws_ecr_repository" "umlspipeline" {
   name                 = "hwangsy_umlspipeline"
+  force_delete = true
   image_scanning_configuration {
     scan_on_push = true
   }
@@ -73,10 +74,6 @@ resource "aws_iam_role_policy_attachment" "ecs_task_execution_policy" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
 }
 
-resource "aws_iam_role_policy_attachment" "ecs_task_execution_ec2_policy" {
-  role       = aws_iam_role.ecs_task_execution.name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerServiceforEC2Role"
-}
 
 # IAM Role for ECS Task (app permissions)
 resource "aws_iam_role" "ecs_task" {
@@ -121,8 +118,8 @@ resource "aws_ecs_task_definition" "umlspipeline" {
   family                   = "${var.project_name}-task"
   requires_compatibilities = ["FARGATE"]
   network_mode             = "awsvpc"
-  cpu                      = "512"
-  memory                   = "1024"
+  cpu                      = "1024"
+  memory                   = "4096"
   execution_role_arn       = aws_iam_role.ecs_task_execution.arn
   task_role_arn            = aws_iam_role.ecs_task.arn
   ephemeral_storage {
@@ -133,17 +130,22 @@ resource "aws_ecs_task_definition" "umlspipeline" {
       name      = "umlspipeline"
       image     = aws_ecr_repository.umlspipeline.repository_url
       essential = true
-      portMappings = [
-        {
-          containerPort = 80
-          hostPort      = 80
-        }
-      ]
       environment = [
-        {
-          name  = "S3_BUCKET_ARN"
-          value = aws_s3_bucket.project_data.arn
-        }
+        { name = "MODE", value = "fargate" },
+        { name = "S3_BUCKET", value = aws_s3_bucket.project_data.id },
+        { name = "INPUT_PREFIX", value = "input/" },
+        { name = "OUTPUT_PREFIX", value = "output/" },
+        { name = "INPUT_DIR", value = "/tmp/input" },
+        { name = "OUTPUT_DIR", value = "/tmp/output" }
+      ]
+      command = [
+        "python", "main.py",
+        "-i", "/tmp/input/data/input/mtsamples.csv",
+        "-o", "/tmp/output/output.jsonl",
+        "-u", "/tmp/input/2020AB-full/2020AB-quickumls-install",
+        "-t", "description",
+        "-d", "note_id",
+        "--embeddings", "/tmp/input/data/embeddings/cui2vec_pretrained.txt"
       ]
       logConfiguration = {
         logDriver = "awslogs"
@@ -155,4 +157,34 @@ resource "aws_ecs_task_definition" "umlspipeline" {
       }
     }
   ])
+}
+
+resource "aws_s3_bucket_cors_configuration" "project_data_cors_configuration" {
+  bucket = aws_s3_bucket.project_data.id
+
+  cors_rule {
+    allowed_headers = ["*"]
+    allowed_methods = ["GET", "POST", "PUT", "HEAD"]
+    allowed_origins = ["http://localhost:5173", "http://localhost:3000", "https://hwangsy-umlspipeline.bmin-5100.com"]
+    expose_headers  = ["ETag"]
+    max_age_seconds = 3000
+  }
+}
+
+module "invoke_fargate_lambda" {
+  source = "git@github.com:BMIN-5100-Spring-2025/infrastructure.git//invoke_fargate_lambda/terraform"
+
+  project_name = var.project_name
+  ecs_task_definition_arn = aws_ecs_task_definition.umlspipeline.arn
+  ecs_task_execution_role_arn = aws_iam_role.ecs_task_execution.arn
+  ecs_task_task_role_arn = aws_iam_role.ecs_task.arn
+  ecs_task_definition_container_name = "umlspipeline"
+
+  ecs_cluster_arn = data.terraform_remote_state.infrastructure.outputs.ecs_cluster_arn
+  ecs_security_group_id = data.terraform_remote_state.infrastructure.outputs.ecs_security_group_id
+  private_subnet_id = data.terraform_remote_state.infrastructure.outputs.private_subnet_id
+  api_gateway_authorizer_id = data.terraform_remote_state.infrastructure.outputs.api_gateway_authorizer_id
+  api_gateway_execution_arn = data.terraform_remote_state.infrastructure.outputs.api_gateway_execution_arn
+  api_gateway_id = data.terraform_remote_state.infrastructure.outputs.api_gateway_id
+  environment_variables = {}
 } 
