@@ -18,6 +18,11 @@ class ProcessingConfig:
 	parallelize: bool = False
 	embeddings_path: Optional[str] = None
 	visualization_path: Optional[str] = None
+	sbert_model: str = "sapbert"  # choices: 'sapbert', 'minilm'
+	fusion_strategy: str = "concat"  # choices: 'concat', 'linear'
+	fallback_strategy: str = "text2vec"  # choices: 'text2vec', 'graph'
+	mrrel_path: Optional[str] = None
+	vectors_out: Optional[str] = None
 	
 	@property
 	def input_path(self) -> Path:
