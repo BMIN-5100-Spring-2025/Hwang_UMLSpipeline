@@ -5,3 +5,4 @@ __pycache__/
 data/embeddings/*
 data/input/*
 data/output/*
+node_modules
