@@ -1,6 +1,12 @@
 # Simple UMLS Pipeline
 
-A very simple pipeline for processing medical text documents to extract medical concepts and CUIs using medspaCy and QuickUMLS.
+End‑to‑end pipeline that:
+* extracts UMLS concepts with QuickUMLS
+* enriches each note with **hybrid embeddings** (CUI2Vec + SentenceTransformer)
+* supports **SapBERT** or **MiniLM** encoders, concat or learnable linear fusion
+* fills missing CUI vectors via **Text‑to‑Vec** or **Graph‑completion** fallbacks
+* persists note‑level vectors (`.npy` + meta CSV)
+* offers interactive visualisation & unsupervised clustering (UMAP + HDBSCAN / GMM / Spectral) via CLI
 
 ## Features
 
@@ -8,13 +14,18 @@ A very simple pipeline for processing medical text documents to extract medical 
 - Support for CSV and TXT input files
 - Parallel processing capability for large datasets
 - Configurable batch processing
+- Sentence‑level embeddings (SapBERT / MiniLM)
+- Hybrid fusion & multiple fallback strategies
+- Document‑vector persistence for reuse
+- Visualisation & clustering utilities (UMAP + HDBSCAN,GMM,Spectral)
 
-## Dependencies
+## Dependencies (see `requirements.txt`)
 
-- Python 3.8+
-- medspaCy
-- QuickUMLS installation with UMLS database
-- spaCy
+Python 3.8+ and the packages in `requirements.txt`, notably
+
+* spaCy + medspaCy + QuickUMLS
+* gensim, sentence‑transformers, faiss‑cpu, torch
+* umap‑learn, hdbscan, scikit‑learn, plotly
 
 ## Installation
 
@@ -46,16 +57,31 @@ pip install -r requirements.txt
 
 Basic usage:
 ```bash
-python3 main.py -i input_file.csv -o output.jsonl -u /path/to/umls
+python3 main.py \
+  -i data/mtsamples-demo.csv \
+  -o notes.jsonl \
+  -u 2020AB-full/2020AB-quickumls-install/ \
+  --embeddings data/cui2vec_pretrained.txt \
+  --sbert-model sapbert \
+  --fusion concat \
+  --fallback graph \
+  --mrrel 2020AB-full/MRREL.RRF \
+  --vectors-out doc_vectors
 ```
 
-Options:
+Options (key additions bold):
 - `-i, --input`: Path to input file (CSV or TXT)
 - `-o, --output`: Path to output file (JSONL format)
 - `-u, --umls`: Path to UMLS database
 - `-p, --parallel`: Enable parallel processing
 - `--batch-size`: Number of documents to process in each batch (default: 100)
 - `--workers`: Number of worker processes for parallel processing (default: CPU count)
+- `--embeddings`: Path to CUI2Vec file (word2vec format)
+- **`--sbert-model`**: `sapbert` | `minilm`
+- **`--fusion`**: `concat` | `linear` (learnable)
+- **`--fallback`**: `text2vec` | `graph`
+- **`--mrrel`**: Path to `MRREL.RRF` (needed for graph fallback)
+- **`--vectors-out`**: Output basename for saved `.npy` + `_meta.csv`
 
 ### Input File Format
 
@@ -87,35 +113,11 @@ The tool outputs JSONL (JSON Lines) format with the following structure:
 }
 ```
 
-### Python API Usage
+`notes.jsonl` will include a `doc_vector` field (list of floats).
 
-```python
-from utils import ProcessingConfig, DataLoader
-from processor import NLPProcessor
-import medspacy
-
-# Configure processing
-config = ProcessingConfig(
-    input_file="input.csv",
-    output_file="output.jsonl",
-    umls_path="/path/to/umls",
-    parallelize=True
-)
-
-# Initialize components
-nlp = medspacy.load(enable=['medspacy_pyrush', 'medspacy_context'])
-loader = DataLoader()
-processor = NLPProcessor(nlp, config)
-
-# Process documents
-docs = loader.from_file(config.input_path, text_column="AGG_TEXT")
-note_ids = loader.from_file(config.input_path, id_column="note_id")
-
-# Write results
-with open(config.output_path, 'w') as outfile:
-    for result in processor.process_documents(note_ids, docs):
-        outfile.write(json.dumps(result) + '\n')
-```
+If `--vectors-out` was provided you also get:
+* `doc_vectors.npy` – N × D float32 matrix
+* `doc_vectors_meta.csv` – mapping of row_id → row index
 
 ## Parallel Processing
 
@@ -123,3 +125,21 @@ with open(config.output_path, 'w') as outfile:
 - Adjust `batch_size` based on available memory
 - Number of workers defaults to CPU count but can be adjusted using `--workers`
 - The tool automatically chunks data for memory-efficient processing
+
+## Visualisation & Clustering
+
+### CLI quick look
+
+```
+python doc_visualizer.py \
+  --vectors doc_vectors.npy \
+  --meta doc_vectors_meta.csv \
+  --cluster gmm \
+  --out-html note_map.html
+```
+
+Pick `hdbscan` (default), `gmm`, or `spectral`.
+
+### Roadmap
+
+Upcoming items: vector‑cache pickles, UMLS graph serialization, performance benchmarks.
