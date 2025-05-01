@@ -59,7 +59,7 @@ Python 3.8+ and the packages listed in `requirements.txt`, notably:
 2.  Create and activate a virtual environment (recommended):
     ```bash
     python -m venv venv
-    source venv/bin/activate # or venv\Scripts\activate on Windows
+    source venv/bin/activate
     ```
 3.  Install required packages:
     ```bash
@@ -151,8 +151,8 @@ The pipeline can run within a Docker container, suitable for AWS Fargate. See `D
                 "cui": "C0000001", "score": 0.95, "semtype": ["T047"]
             }, ...
         ],
-        "doc_vector": [0.1, -0.2, ..., 0.5], // Added if embeddings are generated
-        "cluster": 3 // Added if clustering is enabled
+        "doc_vector": [0.1, -0.2, ..., 0.5],
+        "cluster": 3 
     }
     ```
 2.  **Document Vectors (`--vectors-out`)**:
@@ -164,8 +164,8 @@ The pipeline can run within a Docker container, suitable for AWS Fargate. See `D
     ```json
     {
       "num_documents": 1000,
-      "isotropy_score": 0.85, // Calculated if vectors generated
-      "eigenvalue_spectrum_percent": [0.15, 0.10, ...] // Top normalized eigenvalues
+      "isotropy_score": 0.85,
+      "eigenvalue_spectrum_percent": [0.15, 0.10, ...]
     }
     ```
 5.  **Embedding Stats (Logged)**: Coverage statistics for CUI embeddings (exact match, fallback hits, misses) are logged to the console.

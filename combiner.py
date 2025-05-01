@@ -2,7 +2,7 @@ from __future__ import annotations
 
 """Utilities for combining CUI2Vec and SBERT embeddings."""
 
-from typing import Optional, Sequence
+from typing import Optional
 import numpy as np
 import logging
 
@@ -10,8 +10,8 @@ try:
     import torch
     import torch.nn as nn
 except ImportError:
-    torch = None  # type: ignore
-    nn = None  # type: ignore
+    torch = None
+    nn = None
 
 
 class EmbeddingCombiner:
@@ -22,7 +22,7 @@ class EmbeddingCombiner:
         if strategy == "linear":
             if torch is None:
                 raise ImportError("PyTorch required for linear fusion strategy")
-            self._proj = nn.Linear(0, 0)  # placeholder; will be set on first call
+            self._proj = nn.Linear(0, 0)
         elif strategy == "concat":
             self._proj = None
         else:
@@ -38,7 +38,7 @@ class EmbeddingCombiner:
             combined = sbert_vec
         elif self.strategy == "concat":
             combined = np.concatenate([cui_vec, sbert_vec])
-        else:  # linear
+        else:  # linear projection
             if self._proj is None or self._proj.in_features == 0:
                 self._init_linear(cui_vec.shape[-1] + sbert_vec.shape[-1])
             vec = np.concatenate([cui_vec, sbert_vec])

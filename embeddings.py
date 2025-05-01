@@ -5,16 +5,11 @@ import logging
 from pathlib import Path
 from collections import defaultdict
 
-# Optional import to avoid heavy dependency if not needed
 try:
-    from sentence_transformers import SentenceTransformer, util as st_util
+    from sentence_transformers import SentenceTransformer
 except ImportError:
-    SentenceTransformer = None  # type: ignore
-    st_util = None  # type: ignore
+    SentenceTransformer = None
 
-# ---------------------------------------------------
-# CUI embedding class with optional fallback strategies
-# ---------------------------------------------------
 
 class ConceptEmbedder:
     """Handles loading and mapping of CUI embeddings using gensim KeyedVectors."""
@@ -53,7 +48,7 @@ class ConceptEmbedder:
             self._cui_mat = np.stack([self.model[cui] for cui in self.model.index_to_key])
             self._cui_norm = self._cui_mat / np.linalg.norm(self._cui_mat, axis=1, keepdims=True)
         else:
-            self.sbert = None  # not used
+            self.sbert = None
 
         # Load graph if requested and path supplied
         if fallback_strategy == "graph":
@@ -64,7 +59,6 @@ class ConceptEmbedder:
                 from graph_utils import load_umls_graph
                 self._umls_graph = load_umls_graph(Path(mrrel_path))
 
-        # Attempt to load SBERT→CUI2Vec projection matrix sitting next to embeddings file (.sbert_proj.npy)
         proj_path = Path(embeddings_filepath).with_suffix(".sbert_proj.npy")
         if proj_path.exists():
             self._proj = np.load(proj_path)
@@ -76,9 +70,7 @@ class ConceptEmbedder:
         else:
             self._proj = None
 
-        # Stats for benchmarking
         self.stats = defaultdict(int)
-        # Cache for OOV fallbacks
         self._fallback_cache: Dict[str, Optional[np.ndarray]] = {}
     
     def get_embedding(self, cui: str):
@@ -117,7 +109,7 @@ class ConceptEmbedder:
             if vec is not None:
                 self.stats['graph'] += 1
 
-        # 4. Cache the result (or None if all failed) and return
+        # 4. Cache the result and return
         self._fallback_cache[cui] = vec
         if vec is None:
             self.stats['missing'] += 1
@@ -126,7 +118,6 @@ class ConceptEmbedder:
     def _text_to_vec_fallback(self, cui: str):
         """Approximate embedding by encoding the term text and mapping to closest CUI2Vec."""
         try:
-            # In real scenario, we may need term text. For now, we use cui string itself.
             query_vec = self.sbert.encode(cui, convert_to_numpy=True, show_progress_bar=False)
             if self._proj is not None:
                 query_vec = query_vec @ self._proj
@@ -143,7 +134,7 @@ class ConceptEmbedder:
             logging.warning(f"Text2Vec fallback failed for {cui}: {err}")
             return None
 
-    # ---------------- Graph fallback ------------------
+    #  Graph fallback 
     def _graph_fallback(self, cui: str, max_hops: int = 2):
         """Traverse UMLS graph outward until neighbor with embedding found, and average them."""
         if self._umls_graph is None:
@@ -194,7 +185,3 @@ class ConceptEmbedder:
         Return a dictionary mapping each CUI in the model to its embedding vector.
         """
         return {word: self.model[word] for word in self.model.key_to_index}
-
-    # Backward compatibility
-    def get_all_embeddings(self):
-        return self.embeddings 

@@ -1,7 +1,5 @@
 from typing import Iterator, Dict, Any, List, Tuple, Optional
 import multiprocessing as mp
-from concurrent.futures import ThreadPoolExecutor
-import json
 from tqdm import tqdm
 from spacy.language import Language
 from spacy.tokens import Doc
@@ -25,9 +23,8 @@ class NLPProcessor:
 		self.nlp = nlp
 		self.config = config
 		self._setup_pipeline()
-		# Pre-calculate optimal chunk size based on available memory and CPU cores
 		self.chunk_size = self._calculate_chunk_size()
-		# Set up logging
+  
 		logging.basicConfig(level=logging.INFO)
 		
 		# Log UMLS path info when initializing
@@ -41,7 +38,6 @@ class NLPProcessor:
 	def _calculate_chunk_size(self) -> int:
 		"""Calculate optimal chunk size based on system resources."""
 		cpu_count = mp.cpu_count()
-		# Default to processing 2 documents per CPU core at a time
 		return max(100, cpu_count * 2)
 
 	def _setup_pipeline(self) -> None:
@@ -90,14 +86,6 @@ class NLPProcessor:
 			print(f"Error processing document {note_id}: {str(e)}")
 			return {'row_id': note_id, 'error': str(e)}
 
-	def _process_batch_parallel(self, 
-							  batch: List[Tuple[str, str]]) -> List[Dict[str, Any]]:
-		"""Process a batch of documents in parallel using threads."""
-		with ThreadPoolExecutor() as executor:
-			docs = list(self.nlp.pipe([text for _, text in batch]))
-			return list(executor.map(self.process_document, 
-								   zip([id_ for id_, _ in batch], docs)))
-
 	def process_documents(self, 
 						note_ids: Iterator[str], 
 						docs: Iterator[str]) -> Iterator[Dict[str, Any]]:
@@ -111,19 +99,14 @@ class NLPProcessor:
 		Returns:
 			Iterator of processed results
 		"""
-		# Calculate total_docs more robustly, avoiding early input_path access
-		import os
 		mode = os.environ.get('MODE', 'local').lower()
 		
 		if mode == 'fargate':
 			# In Fargate mode, get total from the doc_pairs directly
-			# We must convert iterators to list for both batching and counting
 			doc_pairs = list(zip(note_ids, docs))
 			total_docs = len(doc_pairs)
 		else:
-			# In local mode, use the original file line counting
 			try:
-				# Original approach: count lines in input file and subtract header
 				total_docs = sum(1 for _ in open(self.config.input_path)) - 1
 			except (ValueError, FileNotFoundError) as e:
 				# Fallback if file not found or other file-related issues
@@ -133,7 +116,6 @@ class NLPProcessor:
 				doc_pairs = list(zip(note_ids, docs))
 				total_docs = len(doc_pairs)
 		
-		# We must convert iterators to list for batching - may have already done so above
 		if 'doc_pairs' not in locals():
 			doc_pairs = list(zip(note_ids, docs))
 		

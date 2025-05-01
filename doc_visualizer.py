@@ -1,9 +1,7 @@
 """Command‑line utility to visualise saved document vectors with UMAP + HDBSCAN."""
 
 from __future__ import annotations
-
 import argparse
-from pathlib import Path
 import numpy as np
 import pandas as pd
 import umap
@@ -29,18 +27,17 @@ def main():
     vecs = np.load(args.vectors)
     meta = pd.read_csv(args.meta)
 
-    # --- Calculate and Print Isotropy --- 
+    #  Calculate Isotropy 
     try:
         u, s, vh = np.linalg.svd(vecs, full_matrices=False)
         total_variance = np.sum(s**2)
-        if total_variance > 1e-9: # Avoid division by zero
+        if total_variance > 1e-9:
             isotropy_score = 1.0 - (s[0]**2 / total_variance)
             print(f"Isotropy score (1 - λ1/Σλ): {isotropy_score:.4f}")
         else:
             print("Warning: Total variance of singular values is near zero, cannot calculate isotropy.")
     except Exception as e:
         print(f"Warning: Isotropy calculation failed: {e}")
-    # --- End Isotropy Calculation ---
 
     reducer = umap.UMAP(n_components=3, metric='cosine', n_neighbors=args.n_neighbors, min_dist=args.min_dist)
     emb3 = reducer.fit_transform(vecs)
@@ -58,9 +55,9 @@ def main():
         labels = clusterer.fit_predict(emb3)
     elif args.cluster == 'gmm':
         from sklearn.mixture import GaussianMixture
-        n_components = 10  # can be parameterised later
+        n_components = 10
         labels = GaussianMixture(n_components=n_components, covariance_type='full').fit_predict(emb3)
-    else:  # spectral
+    else:
         from sklearn.cluster import SpectralClustering
         labels = SpectralClustering(n_clusters=10, affinity='nearest_neighbors').fit_predict(emb3)
 

@@ -48,13 +48,13 @@ def download_single_file(bucket, s3_key, local_path):
     try:
         s3.download_file(bucket, s3_key, str(local_path))
         logging.info(f"[s3_utils] Download successful for: {s3_key}")
-        return True # Indicate success
+        return True
     except Exception as e:
         logging.error(f"[s3_utils] FAILED to download s3://{bucket}/{s3_key} to {local_path}: {e}")
         # Depending on boto3 version/error type, check for specific errors like Not Found
         if 'Not Found' in str(e) or 'NoSuchKey' in str(e):
             logging.error(f"[s3_utils] Specific error: Key '{s3_key}' not found in bucket '{bucket}'.")
-        return False # Indicate failure
+        return False
 
 def upload_to_s3(bucket, prefix, local_dir):
     s3 = boto3.client('s3')
