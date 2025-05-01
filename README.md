@@ -53,15 +53,10 @@ Python 3.8+ and the packages listed in `requirements.txt`, notably:
 
 1.  Clone this repository:
     ```bash
-    git clone <your-repo-url> UMLSpipeline
-    cd UMLSpipeline
+    git clone https://github.com/BMIN-5100-Spring-2025/Hwang_UMLSpipeline.git
+    cd Hwang_UMLSpipeline
     ```
-2.  Create and activate a virtual environment (recommended):
-    ```bash
-    python -m venv venv
-    source venv/bin/activate
-    ```
-3.  Install required packages:
+2.  Install required packages:
     ```bash
     pip install -r requirements.txt
     ```
