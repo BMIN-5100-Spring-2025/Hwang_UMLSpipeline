@@ -4,6 +4,7 @@ from pathlib import Path
 from itertools import islice
 import csv
 import sys
+import os
 
 @dataclass
 class ProcessingConfig:
@@ -23,12 +24,24 @@ class ProcessingConfig:
 	fallback_strategy: str = "text2vec"  # choices: 'text2vec', 'graph'
 	mrrel_path: Optional[str] = None
 	vectors_out: Optional[str] = None
+	viz_dimension: int = 2
+	cluster_method: Optional[str] = None
+	n_clusters: Optional[int] = None
+	hdb_min_cluster_size: Optional[int] = None
+	hdb_min_samples: Optional[int] = None
 	
 	@property
 	def input_path(self) -> Path:
-		"""Convert input file to Path and validate existence."""
+		"""
+		Convert input file to Path and validate existence.
+		In Fargate mode, validation is more lenient to allow for placeholder paths.
+		"""
 		path = Path(self.input_file)
-		if not path.exists():
+		# Check if we're running in Fargate mode (indicated by env var)
+		fargate_mode = os.getenv('MODE', '').lower() == 'fargate'
+		
+		if not path.exists() and not fargate_mode:
+			# Only raise error if not in Fargate mode
 			raise ValueError(f"Input file does not exist: {path}")
 		return path
 	

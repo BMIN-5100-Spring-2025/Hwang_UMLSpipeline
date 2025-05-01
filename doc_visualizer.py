@@ -18,7 +18,8 @@ def parse_args():
     p.add_argument('--out-html', required=True, help='Output HTML file')
     p.add_argument('--n-neighbors', type=int, default=15)
     p.add_argument('--min-dist', type=float, default=0.1)
-    p.add_argument('--min-cluster-size', type=int, default=15)
+    p.add_argument('--hdb-min-cluster-size', type=int, help='HDBSCAN min_cluster_size (default: 5)')
+    p.add_argument('--hdb-min-samples', type=int, help='HDBSCAN min_samples (optional)')
     p.add_argument('--cluster', choices=['hdbscan', 'gmm', 'spectral'], default='hdbscan')
     return p.parse_args()
 
@@ -28,11 +29,32 @@ def main():
     vecs = np.load(args.vectors)
     meta = pd.read_csv(args.meta)
 
+    # --- Calculate and Print Isotropy --- 
+    try:
+        u, s, vh = np.linalg.svd(vecs, full_matrices=False)
+        total_variance = np.sum(s**2)
+        if total_variance > 1e-9: # Avoid division by zero
+            isotropy_score = 1.0 - (s[0]**2 / total_variance)
+            print(f"Isotropy score (1 - λ1/Σλ): {isotropy_score:.4f}")
+        else:
+            print("Warning: Total variance of singular values is near zero, cannot calculate isotropy.")
+    except Exception as e:
+        print(f"Warning: Isotropy calculation failed: {e}")
+    # --- End Isotropy Calculation ---
+
     reducer = umap.UMAP(n_components=3, metric='cosine', n_neighbors=args.n_neighbors, min_dist=args.min_dist)
     emb3 = reducer.fit_transform(vecs)
 
     if args.cluster == 'hdbscan':
-        clusterer = HDBSCAN(min_cluster_size=args.min_cluster_size, metric='euclidean')
+        hdb_kwargs = {
+            'metric': 'euclidean',
+            'allow_single_cluster': True,
+            'min_cluster_size': args.hdb_min_cluster_size if args.hdb_min_cluster_size is not None else 5
+        }
+        if args.hdb_min_samples is not None:
+            hdb_kwargs['min_samples'] = args.hdb_min_samples
+        print(f"Running HDBSCAN with params: {hdb_kwargs}")
+        clusterer = HDBSCAN(**hdb_kwargs)
         labels = clusterer.fit_predict(emb3)
     elif args.cluster == 'gmm':
         from sklearn.mixture import GaussianMixture

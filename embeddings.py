@@ -77,7 +77,9 @@ class ConceptEmbedder:
             self._proj = None
 
         # Stats for benchmarking
-        self.stats = defaultdict(int)  # counts for 'exact', 'text2vec', 'graph', 'missing'
+        self.stats = defaultdict(int)
+        # Cache for OOV fallbacks
+        self._fallback_cache: Dict[str, Optional[np.ndarray]] = {}
     
     def get_embedding(self, cui: str):
         """
@@ -92,30 +94,40 @@ class ConceptEmbedder:
         Returns:
             A numpy array for the embedding, or None if no similar embedding could be determined.
         """
+        # 1. Check cache first
+        if cui in self._fallback_cache:
+            cached_result = self._fallback_cache[cui]
+            if cached_result is not None:
+                self.stats['cache_hit'] += 1
+            return cached_result
+
+        # 2. Check exact match in model
         if cui in self.model:
             self.stats['exact'] += 1
             return self.model[cui]
 
-        # Fallbacks
+        # 3. Attempt fallbacks
+        vec = None
         if self.fallback_strategy == "text2vec" and self.sbert is not None:
             vec = self._text_to_vec_fallback(cui)
             if vec is not None:
                 self.stats['text2vec'] += 1
-                return vec
         elif self.fallback_strategy == "graph":
             vec = self._graph_fallback(cui)
             if vec is not None:
                 self.stats['graph'] += 1
-                return vec
 
-        self.stats['missing'] += 1
-        return None
+        # 4. Cache the result (or None if all failed) and return
+        self._fallback_cache[cui] = vec
+        if vec is None:
+            self.stats['missing'] += 1
+        return vec
 
     def _text_to_vec_fallback(self, cui: str):
         """Approximate embedding by encoding the term text and mapping to closest CUI2Vec."""
         try:
             # In real scenario, we may need term text. For now, we use cui string itself.
-            query_vec = self.sbert.encode(cui, convert_to_numpy=True)
+            query_vec = self.sbert.encode(cui, convert_to_numpy=True, show_progress_bar=False)
             if self._proj is not None:
                 query_vec = query_vec @ self._proj
             elif query_vec.shape[0] != self._cui_mat.shape[1]:

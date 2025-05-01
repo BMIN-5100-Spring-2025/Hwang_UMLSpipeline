@@ -83,10 +83,6 @@ class NLPProcessor:
 						'semtype': list(candidate['semtypes'])
 					}
 					result['umls'].append(entity_info)
-					# print('CUI: {}'.format(candidate['cui']))
-					# print('Similarity: {}'.format(candidate['similarity']))
-					# print('Semtypes: {}'.format(candidate['semtypes']))
-					# print('********************')
 					
 			return result
 		except Exception as e:
@@ -115,10 +111,31 @@ class NLPProcessor:
 		Returns:
 			Iterator of processed results
 		"""
-		total_docs = sum(1 for _ in open(self.config.input_path)) - 1  # Subtract header
+		# Calculate total_docs more robustly, avoiding early input_path access
+		import os
+		mode = os.environ.get('MODE', 'local').lower()
 		
-		# Convert iterators to lists for batching
-		doc_pairs = list(zip(note_ids, docs))
+		if mode == 'fargate':
+			# In Fargate mode, get total from the doc_pairs directly
+			# We must convert iterators to list for both batching and counting
+			doc_pairs = list(zip(note_ids, docs))
+			total_docs = len(doc_pairs)
+		else:
+			# In local mode, use the original file line counting
+			try:
+				# Original approach: count lines in input file and subtract header
+				total_docs = sum(1 for _ in open(self.config.input_path)) - 1
+			except (ValueError, FileNotFoundError) as e:
+				# Fallback if file not found or other file-related issues
+				import logging
+				logging.warning(f"Could not count lines in file: {e}")
+				# Convert iterators to lists for counting and batching
+				doc_pairs = list(zip(note_ids, docs))
+				total_docs = len(doc_pairs)
+		
+		# We must convert iterators to list for batching - may have already done so above
+		if 'doc_pairs' not in locals():
+			doc_pairs = list(zip(note_ids, docs))
 		
 		with tqdm(total=total_docs, desc="Processing documents") as pbar:
 			if self.config.parallelize:
@@ -135,11 +152,13 @@ class NLPProcessor:
 							yield result
 						pbar.update(len(batch))
 			else:
-				# Process in batches sequentially
+				# Process in batches sequentially, but use n_process for nlp.pipe
+				num_workers = self.config.num_workers or os.cpu_count()
 				for i in range(0, len(doc_pairs), self.chunk_size):
 					batch = doc_pairs[i:i + self.chunk_size]
 					docs = self.nlp.pipe([text for _, text in batch],
-									   batch_size=self.config.batch_size)
+									   batch_size=self.config.batch_size,
+									   n_process=num_workers) # Use multiple processes for tokenization
 					for result in self.process_batch(list(zip([id_ for id_, _ in batch], docs)), pbar):
 						yield result
 

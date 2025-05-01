@@ -39,7 +39,9 @@ class DocumentEmbedder:
             A numpy array representing the pooled document vector, or None if no vectors.
         """
         if not cui_to_vec:
-            return None
+            expected_dim = self.concept_embedder.model.vector_size
+            logging.debug("No CUI vectors found for pooling, returning zero vector.")
+            return np.zeros(expected_dim, dtype=np.float32) # Use float32 for consistency
 
         vectors = []
         weights = []

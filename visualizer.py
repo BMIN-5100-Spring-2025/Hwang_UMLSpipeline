@@ -35,44 +35,70 @@ class ConceptVisualizer:
                      term_dict: Optional[Dict[str, str]] = None,
                      dimensions: int = 2) -> pd.DataFrame:
         """
-        Prepare data for visualization.
+        DEPRECATED: Prepare data for concept-level visualization.
+        Use prepare_note_data for document-level visualization.
+        """
+        logging.warning("prepare_data is deprecated for concept maps. Use prepare_note_data.")
+        # ... (Implementation can remain or be simplified/removed if no longer needed)
+        # For safety, let's raise an error if called directly now
+        raise NotImplementedError("prepare_data is deprecated. Use prepare_note_data.")
+        
+    def prepare_note_data(
+        self,
+        vec_arr: np.ndarray,            # shape (n_docs, dim)
+        note_ids: List[str],
+        top_strings: List[str],
+        cluster_labels: Optional[List[int]] = None,
+        dimensions: int = 2) -> pd.DataFrame:
+        """
+        Prepare data for note-level visualization.
         
         Args:
-            embeddings_dict: Dictionary mapping CUIs to their embeddings.
-            frequency_dict: Optional dictionary mapping CUIs to their raw frequencies.
-            weight_dict: Optional dictionary mapping CUIs to their scaled tfidf-like weights.
-            term_dict: Optional dictionary mapping CUIs to their representative concept terms.
+            vec_arr: Numpy array of document embeddings (n_docs, dim).
+            note_ids: List of note IDs corresponding to vec_arr rows.
+            top_strings: List of formatted top concept strings for hover data.
+            cluster_labels: Optional list of cluster assignments for notes.
             dimensions: Number of dimensions (2 or 3) for visualization.
             
         Returns:
-            DataFrame with reduced dimensions and metadata.
+            DataFrame with reduced dimensions and metadata for notes.
         """
-        if not embeddings_dict:
-            raise ValueError("No embeddings provided")
-        
-        cuis = list(embeddings_dict.keys())
-        embeddings_array = np.array(list(embeddings_dict.values()))
-        
-        # Use UMAP for dimensionality reduction with the chosen number of dimensions.
-        reducer = umap.UMAP(n_components=dimensions)
+        if not isinstance(vec_arr, np.ndarray) or vec_arr.ndim != 2:
+            raise ValueError("vec_arr must be a 2D numpy array.")
+        if not (len(note_ids) == vec_arr.shape[0] and len(top_strings) == vec_arr.shape[0]):
+            raise ValueError("Length mismatch between vectors, note_ids, and top_strings.")
+        if cluster_labels is not None and len(cluster_labels) != vec_arr.shape[0]:
+            raise ValueError("Length mismatch between vectors and cluster_labels.")
+            
+        # Configure reducer for the requested dimensions
+        # Note: UMAP might behave slightly differently if n_components changes after init,
+        #       re-initializing might be safer if switching dimensions often.
+        reducer = umap.UMAP(n_components=dimensions, random_state=42) # Use local reducer
+        logging.info(f"Reducing {vec_arr.shape[0]} vectors from {vec_arr.shape[1]}D to {dimensions}D using UMAP...")
         try:
-            reduced_embeddings = reducer.fit_transform(embeddings_array)
+            reduced_embeddings = reducer.fit_transform(vec_arr)
+            logging.info("Dimensionality reduction complete.")
         except Exception as e:
             logging.error(f"Error reducing dimensions: {e}")
             raise
-        
-        data = {'cui': cuis, 'x': reduced_embeddings[:, 0], 'y': reduced_embeddings[:, 1]}
+            
+        data = {
+            'note_id': note_ids,
+            'x': reduced_embeddings[:, 0],
+            'y': reduced_embeddings[:, 1],
+            'top': top_strings # Column for hover data
+        }
         if dimensions == 3:
             data['z'] = reduced_embeddings[:, 2]
         
+        if cluster_labels is not None:
+            data['cluster'] = cluster_labels
+            
         df = pd.DataFrame(data)
         
-        if frequency_dict:
-            df['frequency'] = df['cui'].map(lambda x: frequency_dict.get(x, 0))
-        if weight_dict:
-            df['weight'] = df['cui'].map(lambda x: weight_dict.get(x, 0))
-        if term_dict:
-            df['term'] = df['cui'].map(lambda x: term_dict.get(x, ''))
+        # Convert cluster labels to string for discrete color mapping if present
+        if 'cluster' in df.columns:
+            df['cluster'] = df['cluster'].astype(str)
         
         return df
         
@@ -81,43 +107,35 @@ class ConceptVisualizer:
                     title: str = "Medical Concept Map",
                     dimensions: int = 2) -> "plotly.graph_objects.Figure":
         """
-        Create an interactive plot of concepts.
-        
-        Args:
-            df: DataFrame with reduced dimensions and metadata.
-            title: Plot title.
-            dimensions: Number of dimensions (2 or 3) for visualization.
-            
-        Returns:
-            Plotly figure object.
+        Create an interactive plot.
+        (Works for both concept and note level if df has expected columns)
         """
-        # Increase size_max to make differences in marker sizes more pronounced.
-        if dimensions == 2:
-            fig = px.scatter(
-                df,
-                x='x',
-                y='y',
-                size='weight' if 'weight' in df.columns else None,
-                color='frequency' if 'frequency' in df.columns else None,
-                hover_data=['cui', 'term'],
-                title=title,
-                template='plotly_white',
-                size_max=100
-            )
-        else:  # For 3D visualization
-            fig = px.scatter_3d(
-                df,
-                x='x',
-                y='y',
-                z='z',
-                size='weight' if 'weight' in df.columns else None,
-                color='frequency' if 'frequency' in df.columns else None,
-                hover_data=['cui', 'term'],
-                title=title,
-                template='plotly_white',
-                size_max=100
-            )
+        # Define hover columns based on expected note_data columns
+        hover_cols = ['note_id', 'cluster', 'top'] if 'cluster' in df.columns else ['note_id', 'top']
         
+        # Define size/color based on availability 
+        size_col = 'weight' if 'weight' in df.columns else None 
+        # Use cluster for color if available, otherwise fallback
+        color_col = 'cluster' if 'cluster' in df.columns else ('frequency' if 'frequency' in df.columns else None)
+        
+        # Determine plot function and axes based on dimensions
+        plot_func = px.scatter_3d if dimensions == 3 else px.scatter
+        axis_args = {'x':'x', 'y':'y'}
+        if dimensions == 3:
+            axis_args['z'] = 'z'
+
+        fig = plot_func(
+            df,
+            **axis_args,
+            size=size_col, 
+            color=color_col,
+            hover_data=hover_cols,
+            title=title,
+            template='plotly_white',
+            size_max=60
+        )
+        
+        # Original trace update remains useful
         fig.update_traces(
             marker=dict(sizemin=5),
             selector=dict(mode='markers')

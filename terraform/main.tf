@@ -118,8 +118,8 @@ resource "aws_ecs_task_definition" "umlspipeline" {
   family                   = "${var.project_name}-task"
   requires_compatibilities = ["FARGATE"]
   network_mode             = "awsvpc"
-  cpu                      = "1024"
-  memory                   = "4096"
+  cpu                      = "2048"
+  memory                   = "12288"
   execution_role_arn       = aws_iam_role.ecs_task_execution.arn
   task_role_arn            = aws_iam_role.ecs_task.arn
   ephemeral_storage {
@@ -133,19 +133,24 @@ resource "aws_ecs_task_definition" "umlspipeline" {
       environment = [
         { name = "MODE", value = "fargate" },
         { name = "S3_BUCKET", value = aws_s3_bucket.project_data.id },
-        { name = "INPUT_PREFIX", value = "input/" },
-        { name = "OUTPUT_PREFIX", value = "output/" },
         { name = "INPUT_DIR", value = "/tmp/input" },
-        { name = "OUTPUT_DIR", value = "/tmp/output" }
+        { name = "OUTPUT_DIR", value = "/tmp/output" },
+        { name = "TRANSFORMERS_CACHE", value = "/tmp/hf_cache" }
       ]
       command = [
         "python", "main.py",
-        "-i", "/tmp/input/data/input/mtsamples.csv",
-        "-o", "/tmp/output/output.jsonl",
-        "-u", "/tmp/input/2020AB-full/2020AB-quickumls-install",
-        "-t", "description",
-        "-d", "note_id",
-        "--embeddings", "/tmp/input/data/embeddings/cui2vec_pretrained.txt"
+        "--input", "/tmp/input/placeholder.csv",
+        "--output", "/tmp/output/output.jsonl",
+        "--tcol", "transcription",
+        "--idcol", "note_id",
+        "--umls", "/tmp/input/2020AB-full/2020AB-quickumls-install",
+        "--embeddings", "/tmp/input/data/embeddings/cui2vec_pretrained.txt",
+        "--mrrel", "/tmp/input/2020AB-full/MRREL.RRF",
+        "--sbert-model", "/tmp/models/miniLM",
+        "--fusion", "concat",
+        "--fallback", "text2vec",
+        "--vectors-out", "/tmp/output/doc_vectors",
+        "--visualize", "/tmp/output/visualization.html"
       ]
       logConfiguration = {
         logDriver = "awslogs"
