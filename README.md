@@ -24,11 +24,11 @@ End‑to‑end pipeline that:
 - S3 integration for input/output in Fargate mode.
 - Support for CSV and TXT input files.
 
-## Dependencies (see `requirements.txt`)
+## Dependencies
 
 Python 3.8+ and the packages listed in `requirements.txt`, notably:
 
-*   `spacy`, `quickumls` (via `medspacy`)
+*   `spacy``quickumls` (via `medspacy`)
 *   `gensim`, `sentence-transformers`, `torch` (optional for linear fusion)
 *   `numpy`, `pandas`, `scikit-learn`, `umap-learn`, `hdbscan`
 *   `plotly`, `tqdm`
@@ -163,9 +163,9 @@ The pipeline can run within a Docker container, suitable for AWS Fargate. See `D
       "eigenvalue_spectrum_percent": [0.15, 0.10, ...]
     }
     ```
-5.  **Embedding Stats (Logged)**: Coverage statistics for CUI embeddings (exact match, fallback hits, misses) are logged to the console.
+5.  **Embedding Stats**: Coverage statistics for CUI embeddings (exact match, fallback hits, misses) are logged to the console.
 
-### Standalone Visualization (`doc_visualizer.py`)
+### Standalone Visualization
 
 Use `doc_visualizer.py` to visualize pre-computed document vectors stored in `.npy` format.
 
