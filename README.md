@@ -184,9 +184,3 @@ python doc_visualizer.py \
     --hdb-min-cluster-size 10 \
     --out-html output/standalone_viz.html
 ```
-
-This script performs UMAP and clustering (HDBSCAN, GMM, or Spectral) directly on the loaded vectors.
-
-## Methodology
-
-Refer to `METHODOLOGY.md` for a more detailed explanation of the embedding generation, fusion, and fallback techniques.
