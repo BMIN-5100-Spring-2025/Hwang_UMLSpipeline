@@ -1,4 +1,4 @@
-# UMLS Concept Embedding Pipeline
+# ConceptMap: Enhancing Medical Document Representation through Concept Embeddings
 
 End‑to‑end pipeline that:
 * Extracts UMLS concepts from text using QuickUMLS.
